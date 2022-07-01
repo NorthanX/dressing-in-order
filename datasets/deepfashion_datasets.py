@@ -98,6 +98,12 @@ class DFPairDataset(data.Dataset):
         kpt = self._load_kpt(key)     
         parse = self._load_mask(os.path.join(self.mask_dir, key[:-4]))
         return img, kpt, parse
+
+    def get_to_item_ByKey(self, key):
+        img = self._load_img(os.path.join(self.image_dir,key))
+        kpt = None
+        parse = self._load_mask(os.path.join(self.mask_dir, key[:-4]))
+        return img, kpt, parse
     
     def __getitem__(self, index):
         from_key, to_key = self.name_pairs[index]
@@ -210,12 +216,47 @@ class DFVisualDataset(DFPairDataset):
         all_froms = torch.cat(all_froms)
         all_parses = torch.cat(all_parses)
         all_kpts = torch.cat(all_kpts)
-        return all_froms, all_parses, all_kpts 
+        return all_froms, all_parses, all_kpts
+
+    def load_pose_from_json(self, pose_json, target_size=(256, 176), orig_size=(384, 384)):
+        '''
+        This function converts the OpenPose detected key points (in .json file) to the desired heatmap.
+        input:
+        - pose_json (str): the file_path of the OpenPose detection in .json.
+        - target_size (tuple): the size of output heatmap
+        - orig_size (tuple): the size of original image that is used for OpenPose to detect the key points.
+        Output:
+        - heatmap (torch.Tensor) : the heatmap in size 18xHxW as specified by target_size
+        '''
+        with open(pose_json, 'r') as f:
+            anno = json.load(f)
+        if len(anno['people']) < 1:
+            a, b = target_size
+            return torch.zeros((18, a, b))
+        anno = list(anno['people'][0]['pose_keypoints_2d'])
+        x = np.array(anno[1::3])
+        y = np.array(anno[::3])
+
+        x[8:-1] = x[9:]
+        y = np.array(anno[::3])
+        y[8:-1] = y[9:]
+        x[x == 0] = -1
+        y[y == 0] = -1
+        coord = np.concatenate([x[:, None], y[:, None]], -1)
+        pose = pose_utils.cords_to_map(coord, target_size, orig_size)
+        pose = np.transpose(pose, (2, 0, 1))
+        pose = torch.Tensor(pose)
+        return pose[:18]
+
 
     def get_inputs_by_key(self, key):
         #keys = self.attr_keys[subset]
         #keys = keys[:min(len(keys), 4)]
-        curr_from, to_kpt, curr_parse = self.get_to_item(key)
+        if isinstance(key[1], str):
+            curr_from, to_kpt, curr_parse = self.get_to_item_ByKey(key[0])
+            to_kpt = self.load_pose_from_json(key[1])
+        else:
+            curr_from, to_kpt, curr_parse = self.get_to_item(key[0])
         return curr_from, curr_parse, to_kpt
     
        
