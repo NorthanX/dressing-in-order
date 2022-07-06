@@ -8,7 +8,7 @@ import numpy as np
 from utils import pose_utils
 
 
-def load_pose_from_json(pose_json, target_size=(256, 176), orig_size=(384, 384)):
+def load_pose_from_json(pose_json, target_size=(512, 352), orig_size=(384, 384)):
     '''
     This function converts the OpenPose detected key points (in .json file) to the desired heatmap.
     input:

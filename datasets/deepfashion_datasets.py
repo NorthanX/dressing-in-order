@@ -35,7 +35,7 @@ class DFPairDataset(data.Dataset):
         return anns 
 
 
-    def __init__(self, dataroot, dim=(256,256), isTrain=True, n_human_part=8, viton=False):
+    def __init__(self, dataroot, dim=(512,512), isTrain=True, n_human_part=8, viton=False):
         super(DFPairDataset, self).__init__()
         self.root = dataroot
         self.isTrain = isTrain
@@ -57,7 +57,8 @@ class DFPairDataset(data.Dataset):
         self.crop_size = self.load_size
     
         # transforms
-        self.resize = transforms.Resize(self.crop_size)
+        # self.resize = transforms.Resize(self.crop_size)
+        self.resize = transforms.Resize((512, 352))
         self.toTensor = transforms.ToTensor()
         self.toPIL = transforms.ToPILImage()
         self.normalize = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
@@ -87,7 +88,7 @@ class DFPairDataset(data.Dataset):
     def _load_kpt(self, name):
         string = self.annotation_file.loc[name]
         array = pose_utils.load_pose_cords_from_strings(string['keypoints_y'], string['keypoints_x'])
-        pose  = pose_utils.cords_to_map(array, self.load_size, (256, 176))
+        pose  = pose_utils.cords_to_map(array, self.load_size, (512, 352))
         pose = np.transpose(pose,(2, 0, 1))
         pose = torch.Tensor(pose)
         return pose  
@@ -116,7 +117,7 @@ class DFPairDataset(data.Dataset):
         
 class DFVisualDataset(DFPairDataset):
 
-    def __init__(self, dataroot, dim=(256,256), texture_dir="",isTrain=False, n_human_part=8):
+    def __init__(self, dataroot, dim=(512,512), texture_dir="",isTrain=False, n_human_part=8):
         DFPairDataset.__init__(self, dataroot, dim, isTrain, n_human_part=n_human_part)
         # load anns
         # import pdb; pdb.set_trace()
@@ -218,7 +219,7 @@ class DFVisualDataset(DFPairDataset):
         all_kpts = torch.cat(all_kpts)
         return all_froms, all_parses, all_kpts
 
-    def load_pose_from_json(self, pose_json, target_size=(256, 176), orig_size=(384, 384)):
+    def load_pose_from_json(self, pose_json, target_size=(512, 352), orig_size=(384, 384)):
         '''
         This function converts the OpenPose detected key points (in .json file) to the desired heatmap.
         input:

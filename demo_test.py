@@ -103,7 +103,7 @@ def load_img(pid, ds):
     return pimg.squeeze(), parse.squeeze(), to_pose.squeeze()
 
 
-def load_pose_from_json(pose_json, target_size=(256, 174), orig_size=(384, 384)):
+def load_pose_from_json(pose_json, target_size=(256, 176), orig_size=(384, 384)):
     '''
         This function converts the OpenPose detected key points (in .json file) to the desired heatmap.
         input:
@@ -186,17 +186,17 @@ def dress_in_order(model, pid, pose_id=None, gids=[], ogids=[], order=[5, 1, 3, 
         gsegs[gid[2]] = seg
         gimgs += [gimg * (gparse == gid[2]).to(torch.float32)]
 
-    # encode garment (overlay)
-    garments = []
-    over_gsegs = []
-    oimgs = []
-    for gid in ogids:
-        oimg, oparse, pose = load_img(gid, ds)
-        oimgs += [oimg * (oparse == gid[2]).to(torch.float32)]
-        seg = model.encode_single_attr(oimg[None], oparse[None], pose[None], to_pose[None], i=gid[2])
-        over_gsegs += [seg]
+    # # encode garment (overlay)
+    # garments = []
+    # over_gsegs = []
+    # oimgs = []
+    # for gid in ogids:
+    #     oimg, oparse, pose = load_img(gid, ds)
+    #     oimgs += [oimg * (oparse == gid[2]).to(torch.float32)]
+    #     seg = model.encode_single_attr(oimg[None], oparse[None], pose[None], to_pose[None], i=gid[2])
+    #     over_gsegs += [seg]
 
-    gsegs = [gsegs[i] for i in order] + over_gsegs
+    # gsegs = [gsegs[i] for i in order] + over_gsegs
     gen_img = model.netG(to_pose[None], psegs, gsegs)
 
     return pimg, gimgs, oimgs, gen_img[0], to_pose
@@ -204,10 +204,11 @@ def dress_in_order(model, pid, pose_id=None, gids=[], ogids=[], order=[5, 1, 3, 
 
 ## Try-On: Tucking in
 
-pid = ("pattern", 3, None)  # load the 3-rd person from "pattern" group, NONE (no) garment is interested
+# pid = ("pattern", 3, None)  # load the 3-rd person from "pattern" group, NONE (no) garment is interested
+pid = ("4-model.jpg", "./json/4-model_keypoints.json", None)
 gids = [
-    ("3-swimweartest-8.jpg", "./json/3-swimweartest-8_keypoints.json", 5), # load the 0-th person from "plaid" group, garment #5 (top) is interested
-    ("pattern", 3, 1),
+    ("1-testClothWomen1.jpg", "./json/1-testClothWomen1_keypoints.json", 5), # load the 0-th person from "plaid" group, garment #5 (top) is interested
+    ("1-testClothWomen1.jpg", "./json/1-testClothWomen1_keypoints.json", 1),
     # ("4-testbymyown.jpg", "./json/4-testbymyown_keypoints.json",1),  # load the 3-rd person from "pattern" group, garment #1 (bottom) is interested
 ]
 # ("plaid",0,5)
@@ -220,13 +221,13 @@ pimg, gimgs, oimgs, gen_img, pose = dress_in_order(model, pid, gids=gids, order=
 plot_img(pimg, gimgs, gen_img=gen_img, pose=pose)
 
 # image = image.squeeze(0)
-# unloader =transforms.ToPILImage()
-# # out = torch.cat(image, 2).float().cpu().detach().numpy()
-# out = gen_img.cpu().clone()
-# out = (out + 1) / 2  # denormalize
-# # out = np.transpose(out, [1, 2, 0])
-# image = unloader(out)
-# image.save('random.jpg')
+unloader =transforms.ToPILImage()
+# out = torch.cat(image, 2).float().cpu().detach().numpy()
+out = gen_img.cpu().clone()
+out = (out + 1) / 2  # denormalize
+# out = np.transpose(out, [1, 2, 0])
+image = unloader(out)
+image.save('random.jpg')
 
 
 # pid = ("fashionWOMENBlouses_Shirtsid0000637003_1front.jpg", None, None)  # load person from the file
